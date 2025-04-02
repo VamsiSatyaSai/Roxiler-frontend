@@ -11,6 +11,7 @@ import {
   Box,
 } from '@mui/material';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const validationSchema = Yup.object({
   name: Yup.string()
@@ -27,8 +28,8 @@ const validationSchema = Yup.object({
     .min(8, 'Password must be at least 8 characters')
     .max(16, 'Password must not exceed 16 characters')
     .matches(
-      /^(?=.*[A-Z])/,
-      'Password must contain at least one uppercase letter and one special character'
+      /^[a-zA-Z0-9]+$/,
+      'Password can only contain letters and numbers'
     )
     .required('Password is required'),
   confirmPassword: Yup.string()
@@ -42,10 +43,10 @@ const Register = () => {
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
       const { confirmPassword, ...registerData } = values;
-      await axios.post('http://localhost:3001/api/auth/register', registerData);
+      await axios.post(`${API_URL}/api/auth/register`, registerData);
       navigate('/login');
     } catch (error) {
-      setErrors({ submit: error.response?.data?.message || 'Registration failed' });
+      setErrors({ submit: error.response?.data?.error || 'Registration failed' });
     } finally {
       setSubmitting(false);
     }

@@ -16,6 +16,7 @@ import {
   DialogActions,
 } from '@mui/material';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const StoreList = () => {
   const [stores, setStores] = useState([]);
@@ -24,6 +25,7 @@ const StoreList = () => {
   const [ratingDialog, setRatingDialog] = useState(false);
   const [rating, setRating] = useState(0);
   const [userRatings, setUserRatings] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStores();
@@ -32,17 +34,19 @@ const StoreList = () => {
 
   const fetchStores = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/stores');
+      const response = await axios.get(`${API_URL}/api/stores`);
       setStores(response.data);
     } catch (error) {
       console.error('Error fetching stores:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchUserRatings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/ratings/user', {
+      const response = await axios.get(`${API_URL}/api/ratings/user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const ratingsMap = {};
@@ -59,7 +63,7 @@ const StoreList = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:3001/api/ratings',
+        `${API_URL}/api/ratings`,
         {
           storeId: selectedStore.id,
           value: rating,
@@ -83,6 +87,14 @@ const StoreList = () => {
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     store.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <Container>
+        <Typography>Loading stores...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg">
@@ -113,7 +125,7 @@ const StoreList = () => {
                     <Typography component="legend">Average Rating:</Typography>
                     <Rating value={store.averageRating || 0} readOnly precision={0.1} />
                     <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
-                      ({store.ratingCount || 0} ratings)
+                      ({store.totalRatings || 0} ratings)
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

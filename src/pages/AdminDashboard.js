@@ -23,6 +23,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -41,46 +42,34 @@ const AdminDashboard = () => {
     address: '',
     role: 'user',
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
-    fetchUsers();
-    fetchStores();
+    fetchData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/admin/stats', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+      const [usersRes, storesRes, statsRes] = await Promise.all([
+        axios.get(`${API_URL}/api/admin/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_URL}/api/admin/stores`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_URL}/api/admin/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/admin/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUsers(response.data);
+      setUsers(usersRes.data);
+      setStores(storesRes.data);
+      setStats(statsRes.data);
     } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const fetchStores = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/admin/stores', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setStores(response.data);
-    } catch (error) {
-      console.error('Error fetching stores:', error);
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,7 +94,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       if (dialogType === 'user') {
         await axios.post(
-          'http://localhost:3001/api/admin/users',
+          `${API_URL}/api/admin/users`,
           formData,
           {
             headers: { Authorization: `Bearer ${token}` }
@@ -113,7 +102,7 @@ const AdminDashboard = () => {
         );
       } else {
         await axios.post(
-          'http://localhost:3001/api/admin/stores',
+          `${API_URL}/api/admin/stores`,
           formData,
           {
             headers: { Authorization: `Bearer ${token}` }
@@ -122,14 +111,46 @@ const AdminDashboard = () => {
       }
       handleCloseDialog();
       if (dialogType === 'user') {
-        fetchUsers();
+        fetchData();
       } else {
-        fetchStores();
+        fetchData();
       }
     } catch (error) {
       console.error('Error submitting form:', error);
     }
   };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
+
+  const handleDeleteStore = async (storeId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/admin/stores/${storeId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting store:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container>
+        <Typography>Loading dashboard...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg">
@@ -189,8 +210,8 @@ const AdminDashboard = () => {
               <TableRow>
                 <TableCell>Name</TableCell>
                 <TableCell>Email</TableCell>
-                <TableCell>Address</TableCell>
                 <TableCell>Role</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -198,8 +219,17 @@ const AdminDashboard = () => {
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.address}</TableCell>
                   <TableCell>{user.role}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -215,18 +245,27 @@ const AdminDashboard = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
                 <TableCell>Address</TableCell>
-                <TableCell>Rating</TableCell>
+                <TableCell>Owner</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {stores.map((store) => (
                 <TableRow key={store.id}>
                   <TableCell>{store.name}</TableCell>
-                  <TableCell>{store.email}</TableCell>
                   <TableCell>{store.address}</TableCell>
-                  <TableCell>{store.averageRating || 'No ratings'}</TableCell>
+                  <TableCell>{store.ownerName}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() => handleDeleteStore(store.id)}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -11,6 +11,7 @@ import {
   Box,
 } from '@mui/material';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const validationSchema = Yup.object({
   email: Yup.string()
@@ -31,7 +32,7 @@ const Login = () => {
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', values);
+      const response = await axios.post(`${API_URL}/api/auth/login`, values);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('userRole', response.data.user.role);
       

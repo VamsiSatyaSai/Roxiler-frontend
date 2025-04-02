@@ -20,6 +20,7 @@ import {
   Grid,
 } from '@mui/material';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const UserDashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -30,6 +31,7 @@ const UserDashboard = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchUserData();
@@ -39,8 +41,8 @@ const UserDashboard = () => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/user/profile', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_URL}/api/user/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setUserData(response.data);
     } catch (error) {
@@ -51,43 +53,53 @@ const UserDashboard = () => {
   const fetchUserRatings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/user/ratings', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_URL}/api/user/ratings`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setRatings(response.data);
     } catch (error) {
       console.error('Error fetching user ratings:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleOpenPasswordDialog = () => {
+    setOpenPasswordDialog(true);
+  };
+
+  const handleClosePasswordDialog = () => {
+    setOpenPasswordDialog(false);
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
   };
 
   const handlePasswordChange = async () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:3001/api/user/password',
+        `${API_URL}/api/user/change-password`,
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
         },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setOpenPasswordDialog(false);
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      handleClosePasswordDialog();
     } catch (error) {
       console.error('Error changing password:', error);
     }
   };
 
-  if (!userData) {
+  if (loading) {
     return (
       <Container>
-        <Typography>Loading...</Typography>
+        <Typography>Loading dashboard...</Typography>
       </Container>
     );
   }
@@ -124,7 +136,7 @@ const UserDashboard = () => {
           <Button
             variant="contained"
             color="primary"
-            onClick={() => setOpenPasswordDialog(true)}
+            onClick={handleOpenPasswordDialog}
             sx={{ mt: 2 }}
           >
             Change Password
@@ -162,7 +174,7 @@ const UserDashboard = () => {
       </Box>
 
       {/* Change Password Dialog */}
-      <Dialog open={openPasswordDialog} onClose={() => setOpenPasswordDialog(false)}>
+      <Dialog open={openPasswordDialog} onClose={handleClosePasswordDialog}>
         <DialogTitle>Change Password</DialogTitle>
         <DialogContent>
           <TextField
@@ -197,7 +209,7 @@ const UserDashboard = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPasswordDialog(false)}>Cancel</Button>
+          <Button onClick={handleClosePasswordDialog}>Cancel</Button>
           <Button
             onClick={handlePasswordChange}
             variant="contained"
